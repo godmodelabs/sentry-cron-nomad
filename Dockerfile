@@ -1,8 +1,11 @@
-FROM alpine:latest
+FROM alpine:3
 
-ADD --chmod=755 sentry-cron-poststop.sh /
-ADD --chmod=755 sentry-cron-prestart.sh /
+ADD --chmod=755 sentry-cron-nomad.sh /
 
 RUN apk add --no-cache curl jq
 
-CMD ["/sentry-cron-poststop.sh"]
+RUN addgroup -S nonroot \
+    && adduser -S nonroot -G nonroot
+USER nonroot
+
+ENTRYPOINT ["/sentry-cron-nomad.sh"]
