@@ -2,14 +2,14 @@
 CRON=${1}
 TIMEZONE=${2}
 # Generate Sentry Cron Checkin-ID from Nomad Job ID as Sentry does not like special characters in it 
-TEMP=$(printf '%s' "${NOMAD_JOB_ID}" | md5sum )
+TEMP=$(printf '%s' "${NOMAD_ALLOC_ID}" | md5sum )
 CHECK_IN_ID=${TEMP%  -}
 case "${NOMAD_TASK_NAME}" in
     sentry-cron-start)
         # Configure cron in Sentry and tell Sentry about the start
         ERROR=$(curl --silent --show-error -X POST "${SENTRY_CRONS}" \
         --header 'Content-Type: application/json' \
-        --data-raw '{"monitor_config":{"schedule":{"type":"crontab","value":"'"${CRON}"'"},"timezone":"'"${TIMEZONE}"'","failure_issue_threshold":1,"recovery_threshold":1},"environment":"'"${APP_ENV}"'","check_in_id":"'"${CHECK_IN_ID}"'","status":"in_progress"}' )
+        --data-raw '{"monitor_config":{"schedule":{"type":"crontab","value":"'"${CRON}"'"},"timezone":"'"${TIMEZONE}"'","failure_issue_threshold":1,"recovery_threshold":1},"environment":"'"${HOST_ENVIRONMENT}"'","check_in_id":"'"${CHECK_IN_ID}"'","status":"in_progress"}' )
         if [ ! "X${ERROR}" = 'X' ]
         then
             env >&2
@@ -17,7 +17,7 @@ case "${NOMAD_TASK_NAME}" in
             echo "TIMEZONE=${TIMEZONE}" >&2
             echo "CHECK_IN_ID=${CHECK_IN_ID}" >&2
             echo "Data:" >&2
-            echo '{"monitor_config":{"schedule":{"type":"crontab","value":"'"${CRON}"'"},"timezone":"'"${TIMEZONE}"'","failure_issue_threshold":1,"recovery_threshold":1},"environment":"'"${APP_ENV}"'","check_in_id":"'"${CHECK_IN_ID}"'","status":"in_progress"}' >&2
+            echo '{"monitor_config":{"schedule":{"type":"crontab","value":"'"${CRON}"'"},"timezone":"'"${TIMEZONE}"'","failure_issue_threshold":1,"recovery_threshold":1},"environment":"'"${HOST_ENVIRONMENT}"'","check_in_id":"'"${CHECK_IN_ID}"'","status":"in_progress"}' >&2
             echo "Error: ${ERROR}" >&2
         fi
     ;;
@@ -29,14 +29,14 @@ case "${NOMAD_TASK_NAME}" in
             if [ "X${FAILED}" = 'Xfalse' ]
             then
                 # echo "Failed for main task of ${NOMAD_JOB_ID} is ${FAILED}, sending status 'ok'." >&2
-                curl --silent "${SENTRY_CRONS}?environment=${APP_ENV}&check_in_id=${CHECK_IN_ID}&status=ok"
+                curl --silent "${SENTRY_CRONS}?environment=${HOST_ENVIRONMENT}&check_in_id=${CHECK_IN_ID}&status=ok"
             else
                 # echo "Failed for main task of ${NOMAD_JOB_ID} is ${FAILED}, sending status 'error'." >&2
-                curl --silent "${SENTRY_CRONS}?environment=${APP_ENV}&check_in_id=${CHECK_IN_ID}&status=error"
+                curl --silent "${SENTRY_CRONS}?environment=${HOST_ENVIRONMENT}&check_in_id=${CHECK_IN_ID}&status=error"
             fi
         else
             echo "curl for main task of ${NOMAD_JOB_ID} failed, received '${ALLOCATION}', sending status 'ok'." >&2
-            curl --silent "${SENTRY_CRONS}?environment=${APP_ENV}&check_in_id=${CHECK_IN_ID}&status=ok"
+            curl --silent "${SENTRY_CRONS}?environment=${HOST_ENVIRONMENT}&check_in_id=${CHECK_IN_ID}&status=ok"
         fi
     ;;
     *)
