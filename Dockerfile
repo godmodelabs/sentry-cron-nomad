@@ -1,11 +1,9 @@
 FROM alpine:3
 
-ADD --chmod=755 sentry-cron-nomad.sh /
+COPY --chmod=755 sentry-cron-nomad.sh /
 
 RUN apk add --no-cache curl jq
 
-RUN addgroup -S nonroot \
-    && adduser -S nonroot -G nonroot
-USER nonroot
+USER nobody
 
 ENTRYPOINT ["/sentry-cron-nomad.sh"]
